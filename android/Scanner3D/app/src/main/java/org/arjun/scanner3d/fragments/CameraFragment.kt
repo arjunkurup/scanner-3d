@@ -43,12 +43,17 @@ import android.util.Size
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.lifecycle.LifecycleOwner
+import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Request
 import java.lang.Math.*
 import java.util.*
 import com.android.volley.Response
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import org.json.JSONObject
 import java.io.ByteArrayInputStream
+import java.util.concurrent.TimeUnit
 
 
 /**
@@ -59,6 +64,7 @@ import java.io.ByteArrayInputStream
  * - Image analysis
  *
  */
+val BACKEND_SERVER_URL = "http://192.168.1.196:5000"
 class CameraFragment : Fragment() {
 
     private lateinit var mainExecutor : Executor
@@ -284,7 +290,7 @@ class CameraFragment : Fragment() {
             val imageData = photoFile.readBytes()
             val request = object : VolleyFileUploadRequest(
                 Request.Method.POST,
-                "http://192.168.1.24:5000/upload",
+                BACKEND_SERVER_URL + "/upload",
                 Response.Listener {
                     println("response is: $it")
                 },
@@ -349,6 +355,30 @@ class CameraFragment : Fragment() {
             }
             // Bind use cases
             bindCameraUseCases()
+        }
+        // Listener for start /stop data set
+        controls.findViewById<ImageButton>(R.id.photo_view_button).setOnClickListener{
+
+            val url = BACKEND_SERVER_URL + "/scan"
+
+
+            // Post parameters
+            // Form fields and values
+            val jsonObject = JSONObject()
+            jsonObject.put("foo", "bar")
+
+            // Volley post request with parameters
+            val request = JsonObjectRequest(Request.Method.POST,url,jsonObject,
+                Response.Listener { response ->
+                    // Process the json
+                    println("Response: $response")
+
+                }, Response.ErrorListener{
+                    // Error in request
+                    println("Volley error: $it")
+                })
+            request.retryPolicy = DefaultRetryPolicy(1800000,0, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT)
+            Volley.newRequestQueue(context).add(request)
         }
     }
 
