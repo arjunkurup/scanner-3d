@@ -64,7 +64,7 @@ import java.util.concurrent.TimeUnit
  * - Image analysis
  *
  */
-val BACKEND_SERVER_URL = "http://192.168.1.196:5000"
+val BACKEND_SERVER_URL = "http://192.168.43.77:5000"
 class CameraFragment : Fragment() {
 
     private lateinit var mainExecutor : Executor
@@ -227,7 +227,7 @@ class CameraFragment : Fragment() {
     }
 
 
-    // Declare and bind preview, capture and analysis use cases */
+    // Declare and bind preview, capture use cases */
     private fun bindCameraUseCases() {
 
         // Get screen metrics used to setup camera for full screen resolution
@@ -269,7 +269,7 @@ class CameraFragment : Fragment() {
 
             try {
                 // A variable number of use cases can be passed here -
-                // camera provides acces to CameraControl & CameraInfo
+                // camera provides access to CameraControl & CameraInfo
                 camera = cameraProvider.bindToLifecycle(
                     this as LifecycleOwner, cameraSelector, preview, imageCapture)
 
@@ -279,15 +279,17 @@ class CameraFragment : Fragment() {
         }, mainExecutor)
     }
 
-    // Define callback that will be triggered aftera  photo has been taken and saved to disk
+    // Define callback that will be triggered after a photo has been taken and saved to disk
     private val imageSavedListener = object : ImageCapture.OnImageSavedCallback {
         override fun onError(imageCaptureError : Int, message: String, cause: Throwable?) {
             Log.e(TAG, "Photo capture failed: $message", cause)
         }
 
         override fun onImageSaved(photoFile: File) {
+            // File has been saved to android disk. Now begin upload to server
             Log.d(TAG, "Photo capture suceeded: ${photoFile.absolutePath}")
             val imageData = photoFile.readBytes()
+            //create file upload request to POST to server
             val request = object : VolleyFileUploadRequest(
                 Request.Method.POST,
                 BACKEND_SERVER_URL + "/upload",
@@ -298,12 +300,14 @@ class CameraFragment : Fragment() {
                     println("error is : $it")
                 }
             ) {
+                //this method is called to get the data of the file that needs to upload
                 override fun getByteData(): MutableMap<String, FileDataPart> {
                     var params = HashMap<String, FileDataPart>()
                     params["file"] = FileDataPart("img-" + photoFile.name, imageData, "jpg")
                     return params
                 }
             }
+            // we queue the request to send to server
             Volley.newRequestQueue(context).add(request)
 
         }
@@ -356,7 +360,7 @@ class CameraFragment : Fragment() {
             // Bind use cases
             bindCameraUseCases()
         }
-        // Listener for start /stop data set
+        // Listener for starting point cloud generation on server
         controls.findViewById<ImageButton>(R.id.photo_view_button).setOnClickListener{
 
             val url = BACKEND_SERVER_URL + "/scan"

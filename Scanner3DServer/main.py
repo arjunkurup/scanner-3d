@@ -9,6 +9,7 @@ from threading import Lock
 lock = Lock()
 ALLOWED_EXTENSIONS = set(['jpg', 'jpeg'])
 
+# the directory where the images are uploaded
 UPLOAD_FOLDER = '/source/OpenSfM/image_uploads'
 
 def allowed_file(filename):
@@ -17,12 +18,15 @@ def allowed_file(filename):
 
 app = Flask(__name__)
 
+# Process the scan call
 @app.route('/scan', methods=['POST'])
 def run_sfm():
     lock.acquire()
+    # only start point cloud generation if there are images in the upload folder
     if len(os.listdir(UPLOAD_FOLDER) ) > 0:
         try:
             flash('Starting point cloud generation...')
+            # call script to do point could generation
             rc = call('./generate_point_cloud.sh')
             flash('End point cloud generation....')
         except:
@@ -31,7 +35,8 @@ def run_sfm():
     return ('', 200)
 
 
-
+# called to upload the file
+# saves the file to UPLOAD_FOLDER
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if request.method == 'POST':
@@ -58,5 +63,6 @@ if __name__ == "__main__":
     app.secret_key = "secret key"
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 2024
+    # start server at default port of 5000
     app.run(host='0.0.0.0')
 
